@@ -1,112 +1,124 @@
-# RLVIND: A Training Gym for Training
+# RLVIND Training Gym
 
-**Reinforcement Learning with Verifiable Inverse Nonlinear Dynamics**
+The [proposal](proposal.md) sets out the research program and its longer-term hypotheses. This document describes the
+initial neural computation environments, episode protocol, and evaluation design.
 
-## The idea
+## Episode contract
 
-Train a model to make other models better.
+The **learner** receives RL updates across episodes. A **target** is the network or learning process it investigates
+within an episode. Each environment provides the following:
 
-1. Start with many cheap toy models, each with a task and a training, evaluation, and inference setup.
-2. Ask the model under training to improve them. Reward measured improvement.
-3. As the tasks become easy, increase the difficulty and diversity of the target models.
-4. Repeat.
+| Component | Contents |
+| --- | --- |
+| Target | A reproducible model snapshot or training setup, with its task and starting performance |
+| Objective | The metric, required behavior, and any quality or cost constraints |
+| Development access | Data, probes, and execution feedback available for experimentation |
+| Actions | The code, data, architecture, inference settings, or weights the learner may change |
+| Budget | Limits on learner inference, target computation, and other experimental resources |
+| Submission | An executable change, model artifact, selection, or prediction, as appropriate to the task |
+| Evaluation | An environment-controlled procedure that scores the submission on held-out cases |
 
-This is **the bitter lesson squared**: the target models learn to solve problems, while the outer model learns how to make learning and computation work better. Supply tasks, tools, compute, and verifiable rewards; let learning discover the strategies.
+The objective, constraints, and scoring rule are fixed before the learner begins. Final evaluation data and scoring
+remain under the environment's control. A learner's own development tests can inform its decisions; the environment
+runs the final evaluation independently.
 
-Neural networks are the first gym. The broader hypothesis is that this curriculum can develop transferable competence in understanding and improving nonlinear dynamical systems. Recursive self-improvement is a particularly valuable application because the learner is itself one of those systems.
+## Initial environments
 
-## Why start with models?
+Start with a small, varied collection of inexpensive targets. These examples define useful task families; their sizes
+and budgets should be chosen from measured episode costs.
 
-The opportunity is a renewable supply of useful training experience. We can generate architectures, datasets, training runs, checkpoints, and inference problems; ask a learner to improve them; and measure what happens. Each episode can produce a training signal without requiring a human to supply the solution.
+### Training
 
-Models also provide an unusually convenient experimental domain. We can save their state, clone them, inspect their internals, change their parameters, and run controlled comparisons. For questions about a neural network, the experiment can run the actual network being studied.
+Give the learner a small classifier or sequence model, a dataset, and a training budget. Let it change optimization,
+data selection, initialization, or architecture. Score held-out performance under the budget, or the cost of reaching a
+specified performance level.
 
-The motivating result is *Sparks of Weight-Space Programming*. Its authors report that a frontier model improved Qwen3.5-0.8B by making targeted weight edits that reduced repetitive reasoning. Under their evaluation protocol, MATH-500 accuracy rose from 7.9% to 48.1%. The editing experiment used practice problems and execution feedback, while prohibiting gradient-based training. [1][2]
+Vary the target's training stage and baseline quality. Include well-tuned starting points as the learner improves, so
+that the curriculum continues to demand useful discoveries.
 
-That establishes a useful starting capability in a limited setting. RLVIND asks what happens when we deliberately train that capability across many environments and keep increasing their difficulty.
+### Evaluation and generalization
 
-The supply of possible environments is enormous. The practical challenge is to keep generating environments that teach something new at an affordable computational cost.
+Give the learner several checkpoints or candidate interventions and a limited probing budget. Ask it to select the
+candidate expected to perform best on a specified task distribution. Evaluate the selection on fresh cases.
 
-## The training loop
+Other episodes can ask for predictions of performance or intervention effects. Commit the predictions before the
+environment runs the hidden experiments, and score them with a fixed prediction metric. The task specification states
+what conditions the prediction covers. These tasks test whether the learner can use experiments to make reliable
+decisions and anticipate behavior.
 
-There are two roles:
+### Direct weight programming
 
-- **Learner:** the capable model receiving RL updates.
-- **Target:** the model or learning process that the learner is asked to improve during an episode.
+Give the learner a network with an improvement objective, access to its tensors and activations, and development probes.
+Let it submit weight changes and evaluate the resulting network on held-out inputs. Some tasks can ask it to construct
+a small network for a specified behavior.
 
-An episode gives the learner a target, an objective, development data, tools, and a resource budget. The learner investigates, makes changes, and submits a result. The environment evaluates that result on held-out cases and returns a reward.
+Check any required preservation of existing capabilities alongside the desired improvement. Episodes that study direct
+editing can restrict conventional training; mixed episodes can allow both and charge their computational costs to the
+same experimental budget.
+
+Inference procedures can also be changed when an environment allows them. Objectives can include faster inference at
+a required quality or better performance within a fixed inference budget.
+
+## Training loop
 
 ```text
 initialize a capable learner
-initialize a population of inexpensive model-improvement tasks
+initialize a population of inexpensive neural computation tasks
+reserve separate evaluation families
 
 repeat:
-    sample target models and objectives
-    let the learner attempt improvements within a budget
-    evaluate submitted results on held-out cases
-    update the learner from the measured rewards
-    increase task difficulty and diversity as performance improves
+    sample targets and objectives from the training population
+    give each attempt a reproducible starting state and an experimental budget
+    let the learner investigate and submit a result
+    evaluate submissions on held-out cases for their training episodes
+    update the learner with RL from the measured rewards
+    periodically measure transfer on the reserved evaluation families
+    increase training difficulty and diversity as performance improves
 ```
 
-The learner can write code, inspect tensors and activations, change training data, adjust optimization, modify architectures, improve inference procedures, or edit weights directly. Weight-space programming expands the available actions; conventional training remains available too.
+Within an episode, the learner can inspect the target, write code, run experiments, and revise its approach. Record its
+actions, resource use, and submitted artifact so that results can be reproduced. Restore the starting state for
+independent attempts and baseline comparisons.
 
-For a simple episode, the reward is the target's held-out score improvement under a fixed budget. Other episodes can reward lower training cost, faster inference, or better generalization while requiring an agreed level of task performance. Each objective defines what counts as improvement before the episode begins.
+## Rewards and costs
 
-The evaluator controls the held-out cases and scoring rule. Charge the learner for the experiments it runs, including unsuccessful attempts. These basic constraints keep the reward connected to useful improvement.
+For improvement tasks, begin with held-out score gain over the starting target under a fixed experimental budget.
+For efficiency tasks, reward reduced cost while enforcing the required quality. For selection or prediction tasks,
+use the outcome or prediction metric specified by the environment.
 
-## Progressive overload
+Count all attempts against the experimental budget, including failed training runs, discarded edits, and unsuccessful
+probes. Track learner inference and target computation separately, with explicit resource limits. Record the cost of
+environment generation and final evaluation as part of the overall training cost.
 
-Begin with targets cheap enough to support many attempts: small classifiers, sequence models, recurrent networks, and transformers. Include models at different training stages and with different amounts of room for improvement.
+Compare stochastic targets over repeated runs, using matched seeds where appropriate. Evaluate meaningful regressions
+as part of the objective, such as a proposed edit improving one behavior while damaging another required behavior.
+Successful interventions and accurate predictions supply rewards; explanations can be recorded for later investigation.
 
-As the learner becomes competent, increase the load along several dimensions:
+## Measuring transfer
 
-| Dimension | Progression |
-| --- | --- |
-| Model complexity | Small networks to larger and more varied architectures |
-| Task difficulty | Simple synthetic tasks to richer combinations and real workloads |
-| Improvement difficulty | Obvious weaknesses to stronger, well-tuned baselines |
-| Experimental horizon | Short changes to decisions whose effects appear after longer training or inference |
-| Transfer | Familiar setups to unfamiliar model families and data distributions |
+Training episodes use held-out cases to produce RL rewards. A separate evaluation suite measures progress and supplies
+no RL updates. Reserve evaluation tasks at three levels:
 
-Retain a mixture of easier and harder tasks. Expand the curriculum where performance is saturating, and keep enough tractable tasks to provide a useful learning signal.
+- New instances within familiar task families.
+- Unfamiliar task, data, and architecture families.
+- Environments from generators or authors whose tasks were excluded from training.
 
-Coding agents can help construct and maintain this population. The essential requirement is an executable environment with a meaningful objective and a reliable evaluation. The learner's methods can evolve through training.
+Use validation tasks to guide curriculum changes and keep a final test suite untouched for reporting. This separation
+helps distinguish learning to improve networks from adapting to a particular task generator or repeatedly consulted test.
 
-## The path to recursive self-improvement
+Compare the trained learner with its starting checkpoint under the same episode resources. Include standard training
+or search methods where applicable, and a learner given an equal-compute continuation on conventional coding and math
+tasks. Report quality gains, prediction accuracy where relevant, and experimental cost by family and target size, with
+uncertainty across repeated runs. Plot progress against the compute spent training the learner.
 
-Initially, the learner improves small external targets. As its competence grows, the target population can include increasingly capable models, then checkpoints and training procedures related to the learner itself.
+## First run
 
-At that point, the same activity can produce an improved successor. If the successor is also better at making subsequent improvements, the loop becomes recursive.
+1. Build a small mixture of training, evaluation, and weight programming tasks. Reproduce baseline outcomes and measure
+   episode costs.
+2. Run a pilot with one capable open-weight learner. Check whether RL improves results on unfamiliar targets at matched
+   experimental budgets.
+3. Increase target difficulty and diversity where the learning curves justify it, retaining easier tasks that still
+   provide a useful signal.
 
-The learner need not acquire a complete theory of itself first. A useful training procedure, inference improvement, or parameter change could be enough to advance one generation. Multiple useful discoveries can accumulate.
-
-The central uncertainty is whether strategies learned on simpler targets transfer to increasingly capable ones. Progressive difficulty makes that an empirical question throughout the curriculum. The first milestone is a rising transfer curve; successful recursion is a later milestone.
-
-## Why RLVIND, and where it can go
-
-**Verifiable** describes the training signal: proposed improvements and predictions are checked against execution or observation. Falsifiable explanations may be valuable products of the work, but an episode can have a verifiable outcome without requiring a complete explanatory theory.
-
-**Inverse** describes working backward from observed or desired behavior toward the parameters, mechanisms, or procedures that produce it. Model improvement is an initial form of inverse design. **Nonlinear dynamics** keeps the scope broad enough to include both neural computation and other systems.
-
-The longer-term bet is that the learner acquires reusable ways to investigate unfamiliar dynamics: choosing informative experiments, detecting structure, predicting consequences, and finding effective changes. Those skills could be tested in physical simulations, engineering systems, and eventually experiments involving the physical world.
-
-Cross-domain transfer remains a separate hypothesis. Each new domain needs its own trustworthy observations and evaluation. Neural networks are a practical starting point because they offer accessible internals, repeatable experiments, and a direct connection to improving the learner.
-
-## The first experiment
-
-Start with one capable open-weight learner and a diverse collection of inexpensive target models. Run RL on model-improvement episodes and periodically evaluate the learner on unfamiliar targets, including held-out task and architecture families.
-
-Compare against the starting model under the same experimental budget. An equal-compute continuation on conventional coding and math tasks provides a useful additional baseline.
-
-The main question is:
-
-> As we spend more training compute on progressively harder model-improvement tasks, does the learner become better at improving unfamiliar models?
-
-Measure that learning curve, increase the load when the current tasks saturate, and follow the curve toward larger targets. Cheap targets, reusable checkpoints, and occasional learner updates make this a reasonable starting design for a small number of accelerator nodes; the achievable scale will depend on measured episode and training costs.
-
-**Build the gym. Train on it. Keep increasing the load.**
-
-## References
-
-1. Rikiya Takehi, Jayden Teoh, Alex Zhang, and Omar Khattab. [*Sparks of Weight-Space Programming: LLMs can natively read & write neural network weights*](https://rikiyat.github.io/blog/weight-space-programming/). November 2, 2026.
-2. Authors' [Experiment 8 protocol, results, and reproduction details](https://github.com/RikiyaT/lm_understand-logs/blob/main/exp8_math/README.md).
+The first deliverable is a reproducible gym and a measured transfer curve. Larger targets and tasks involving the
+learner's own training process follow as the evidence and available compute allow.
