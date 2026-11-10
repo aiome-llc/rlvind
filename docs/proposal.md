@@ -1,4 +1,4 @@
-# RLFIND: Reinforcement Learning with Falsifiable Inverse Nonlinear Dynamics
+# RLVIND: Reinforcement Learning with Falsifiable Inverse Nonlinear Dynamics
 
 *Falsification is all you need*
 
@@ -12,7 +12,7 @@ cannot be verified. A candidate model can only be shown consistent with data or 
 badly underdetermines the answer. Yet most of the hard steps in science are inverse: finding governing equations,
 closures, the variables in which dynamics simplify, and the conditions that produce a phenomenon.
 
-We propose RLFIND, a training paradigm in which an agent probes hidden nonlinear dynamical systems through experiments
+We propose RLVIND, a training paradigm in which an agent probes hidden nonlinear dynamical systems through experiments
 of its own design and then submits a model together with a claimed domain of validity. An adversarial falsifier with
 laboratory access to the hidden system attacks the claim. Claims that survive earn their empirical content in bits,
 minus the bits needed to state the model; claims that fail are penalized in proportion to what they claimed. The reward
@@ -76,13 +76,13 @@ The standard way to tame such a problem is a funnel: a blowup profile that attra
 data, so that the dynamics itself performs the inversion. In our reading, the recent forced construction seeds each
 scale of its cascade independently, which makes the blowup it builds effectively infinite-codimensional. The unforced
 question is whether some cascade regenerates itself with only finitely many unstable directions. Codimension is the
-right currency, and finding a funnel is an inverse problem of exactly the kind RLFIND targets.
+right currency, and finding a funnel is an inverse problem of exactly the kind RLVIND targets.
 
 ## 2. From verification to falsification
 
 ### 2.1 Claims
 
-An RLFIND episode ends when the agent submits a claim $(M, D, \varepsilon)$.
+An RLVIND episode ends when the agent submits a claim $(M, D, \varepsilon)$.
 
 $M$ is a model, written as a program in a typed description language for dynamical systems. $D$ is a claimed domain of
 validity: a region of the hidden system's condition space, stated in a structured language of parameter ranges, classes
@@ -154,7 +154,7 @@ binary verifiable reward.
 
 Chaotic systems need special handling. Beyond a few Lyapunov times, pointwise predictions decorrelate even for a perfect
 model with tiny state uncertainty (Lorenz, 1963), so a trajectory-matching reward cannot tell the true model from a
-wrong one. RLFIND scores trajectories only within a predictability horizon estimated from the hidden system's leading
+wrong one. RLVIND scores trajectories only within a predictability horizon estimated from the hidden system's leading
 Lyapunov exponents, and scores statistics beyond it: invariant-measure observables, spectra, correlation functions, and
 extreme-value statistics, using strictly proper scoring rules (Gneiting & Raftery, 2007) and two-sample tests. Models
 may be stochastic, which is the natural form for closures, and are then judged on calibration as well as sharpness.
@@ -171,9 +171,9 @@ round coefficients are cheap, which is the formal version of the "round numbers"
 
 ## 3. Four ways a naive inverse reward fails
 
-RLFIND's design is driven by four failure modes, each with a historical precedent.
+RLVIND's design is driven by four failure modes, each with a historical precedent.
 
-| Failure mode                                | What the agent learns                                                              | Precedent                                                                                                                                 | Safeguard in RLFIND                                                                                             |
+| Failure mode                                | What the agent learns                                                              | Precedent                                                                                                                                 | Safeguard in RLVIND                                                                                             |
 |---------------------------------------------|------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
 | Reward consistency with the data            | To overfit with any sufficiently flexible family                                   | Ptolemaic epicycles: effectively a Fourier series, which predicted the sky well enough for some 1,400 years                               | Description-length charge; claims judged on conditions chosen by the falsifier, not on the fitted data          |
 | Reward agreement with a hidden ground truth | The environment generator's prior instead of nature's                              | Clever Hans, the horse who read his questioners' cues rather than doing arithmetic                                                        | Held-out generator families; adversarial and natural generators; the "Clever Hans gap" as a standing diagnostic |
@@ -314,7 +314,7 @@ and is right.
 
 Baselines are symbolic regression and sparse identification (Schmidt & Lipson, 2009; Brunton et al., 2016; Udrescu &
 Tegmark, 2020; Cranmer, 2023), neural ODE and physics-informed fits followed by symbolic distillation (Cranmer et al.,
-2020), frontier agents with tools but no RLFIND training, and agents trained with RLVR on forward problems only.
+2020), frontier agents with tools but no RLVIND training, and agents trained with RLVR on forward problems only.
 Ablations remove each safeguard in Section 3 in turn, compare interactive experimentation with fixed datasets at matched
 cost, compare weak and strong falsifiers, and sweep $\kappa$.
 
@@ -322,7 +322,7 @@ cost, compare weak and strong falsifiers, and sweep $\kappa$.
 
 | ID | Hypothesis                                                                                                                                                             | Test                                                                          |
 |----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| H1 | RLFIND-trained agents outperform all baselines on inverse problems from held-out generators.                                                                           | Tier 0–2 held-out-generator suites; structural recovery and surviving content |
+| H1 | RLVIND-trained agents outperform all baselines on inverse problems from held-out generators.                                                                           | Tier 0–2 held-out-generator suites; structural recovery and surviving content |
 | H2 | The description-length charge is necessary for recovering true structure, as opposed to predictive skill alone.                                                        | Ablation; structural recovery at matched predictive skill                     |
 | H3 | Interactive experimentation beats passive data at equal cost.                                                                                                          | Matched budgets, active experiments versus fixed datasets                     |
 | H4 | An open, priced hypothesis class and a rule-bending curriculum produce a nonzero escape rate on expert-authored rule-bending problems of the kind current agents fail. | Commissioned sealed suite                                                     |
@@ -352,7 +352,7 @@ cost, compare weak and strong falsifiers, and sweep $\kappa$.
 | 2     | 9–18   | Tiers 3–4; frontier-scale training; real-data transfer; first certified atlas entries                                                                                 |
 | 3     | 18–36  | Neighborhood map of Navier–Stokes; funnel search; public release of the benchmark and the atlas                                                                       |
 
-The deliverables are RLFIND-Bench, a benchmark of falsifiable inverse problems with a sealed evaluation server; an
+The deliverables are RLVIND-Bench, a benchmark of falsifiable inverse problems with a sealed evaluation server; an
 open-source scoring core comprising the description language, encoder, falsifier harness, and statistical tests; trained
 agents; a certified atlas of singularities in Navier–Stokes model equations; and the accompanying papers.
 
@@ -361,21 +361,21 @@ agents; a certified atlas of singularities in Navier–Stokes model equations; a
 **Equation discovery.** Symbolic regression and sparse identification recover governing equations from data (Schmidt &
 Lipson, 2009; Brunton et al., 2016; Udrescu & Tegmark, 2020; Cranmer, 2023), and symbolic distillation can extract laws
 from trained networks (Cranmer et al., 2020). These are fixed algorithms over fixed hypothesis classes and passive data,
-and they succeed when the right terms are already in the library. RLFIND instead trains a policy that designs
+and they succeed when the right terms are already in the library. RLVIND instead trains a policy that designs
 experiments, extends its own hypothesis class, and is judged by survival under attack. The existing methods become tools
 for the agent and baselines for the evaluation.
 
 **Reinforcement learning with verifiable rewards.** RLVR (Lambert et al., 2024; DeepSeek-AI, 2025) underlies much of the
-recent progress in mathematical and scientific reasoning. RLFIND keeps its machinery, changes the reward, and contains
+recent progress in mathematical and scientific reasoning. RLVIND keeps its machinery, changes the reward, and contains
 RLVR as a special case.
 
 **Evaluator-driven discovery.** Search guided by automated evaluators has produced new mathematical constructions at
 scale (Georgiev et al., 2025), and transformers trained on synthetic data find global Lyapunov functions where classical
-solvers fail (Alfarano et al., 2024). These settings come with a scoring function. RLFIND supplies one where none
+solvers fail (Alfarano et al., 2024). These settings come with a scoring function. RLVIND supplies one where none
 exists, by making survival under falsification the score.
 
 **Adversarial verification.** Merlin–Arthur protocols (Babai, 1985) and prover–verifier games (Anil et al., 2021) pair a
-powerful untrusted prover with a weak trusted verifier. RLFIND's verifier does not inspect an argument; it runs
+powerful untrusted prover with a weak trusted verifier. RLVIND's verifier does not inspect an argument; it runs
 experiments. Unsupervised environment design (Dennis et al., 2020) motivates the adversarial generator.
 
 **Scoring and simplicity.** The reward combines minimum description length (Rissanen, 1978) with strictly proper scoring
