@@ -52,6 +52,20 @@ Give the learner a network with an improvement objective, access to its tensors 
 Let it submit weight changes and evaluate the resulting network on held-out inputs. Some tasks can ask it to construct
 a small network for a specified behavior.
 
+[WeightProgramBench](https://huggingface.co/datasets/neilkale/WeightProgramBench) provides an initial set of
+construction tasks. It applies the setup of Experiment 5 in
+[*Sparks of Weight-Space Programming*](https://rikiyat.github.io/blog/weight-space-programming/) to 317 training games
+and five held-out MinAtar games: the learner writes the weights of a small policy network in one response, without
+tools, and a CPU scorer plays the resulting policy over 1,000 seeded episodes. This format isolates construction from
+experimentation. Multi-turn variants can add development rollouts and score submissions on separate held-out seeds, and
+improvement variants can start from weak or damaged trained policies. The all-zero starting network plays uniformly at
+random, so rewards can measure gain over that baseline.
+
+Three of WeightProgramBench's five held-out games have published solutions in the
+[Experiment 5 logs](https://github.com/RikiyaT/lm_understand-logs/tree/main/exp5_write_from_scratch), so transfer
+evaluation should hold out whole game families instead of relying on that split. The benchmark's converted training
+games also carry no declared license, which needs resolving before RLVIND redistributes them.
+
 Check any required preservation of existing capabilities alongside the desired improvement. Episodes that study direct
 editing can restrict conventional training; mixed episodes can allow both and charge their computational costs to the
 same experimental budget.
@@ -113,8 +127,8 @@ uncertainty across repeated runs. Plot progress against the compute spent traini
 
 ## First run
 
-1. Build a small mixture of training, evaluation, and weight programming tasks. Reproduce baseline outcomes and measure
-   episode costs.
+1. Build a small mixture of training, evaluation, and weight programming tasks, drawing initial construction tasks from
+   WeightProgramBench. Reproduce baseline outcomes and measure episode costs.
 2. Run a pilot with one capable open-weight learner. Check whether RL improves results on unfamiliar targets at matched
    experimental budgets.
 3. Increase target difficulty and diversity where the learning curves justify it, retaining easier tasks that still
